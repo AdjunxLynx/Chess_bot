@@ -44,11 +44,11 @@ class Piece:
 
 
 class Pawn(Piece):
+    piece_type = 'pawn'
+
     def __init__(self, row, col, color, square_size):
-        super().__init__(row, col, color, square_size, 'pawn')
+        super().__init__(row, col, color, square_size, self.piece_type)
         self.first_move = True
-
-
 
     def calculate_potential_moves(self, board):
         moves = []
@@ -78,24 +78,26 @@ class Pawn(Piece):
         return 0 <= row < 8 and 0 <= col < 8 and board[row][col] is not None and board[row][col].color != self.color
 
 class Rook(Piece):
+    piece_type = "rook"
+    
     def __init__(self, row, col, color, square_size):
-        super().__init__(row, col, color, square_size, 'rook')
+        super().__init__(row, col, color, square_size, self.piece_type)
         # Additional Rook-specific initialization (if any)
 
-    def calculate_potential_moves(self, board):
+    def calculate_potential_moves(piece, board):
         moves = []
         directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]  # Down, Up, Right, Left
 
         for dir in directions:
             for i in range(1, 8):
-                end_row = self.row + dir[0] * i
-                end_col = self.col + dir[1] * i
+                end_row = piece.row + dir[0] * i
+                end_col = piece.col + dir[1] * i
 
                 if 0 <= end_row < 8 and 0 <= end_col < 8:  # Check if within board boundaries
                     end_piece = board[end_row][end_col]
                     if end_piece is None:  # Empty square
                         moves.append((end_row, end_col))
-                    elif end_piece.color != self.color:  # Capture opponent's piece
+                    elif end_piece.color != piece.color:  # Capture opponent's piece
                         moves.append((end_row, end_col))
                         break
                     else:  # Blocked by own piece
@@ -106,23 +108,24 @@ class Rook(Piece):
         return moves
 
 class Bishop(Piece):
+    piece_type = "bishop"
     def __init__(self, row, col, color, square_size):
-        super().__init__(row, col, color, square_size, 'bishop')
+        super().__init__(row, col, color, square_size, self.piece_type)
         # Additional Bishop-specific initialization (if any)
-    def calculate_potential_moves(self, board):
+    def calculate_potential_moves(piece, board):
         moves = []
         directions = [(1, 1), (1, -1), (-1, 1), (-1, -1)]  # Diagonal directions
 
         for dir in directions:
             for i in range(1, 8):
-                end_row = self.row + dir[0] * i
-                end_col = self.col + dir[1] * i
+                end_row = piece.row + dir[0] * i
+                end_col = piece.col + dir[1] * i
 
                 if 0 <= end_row < 8 and 0 <= end_col < 8:  # Check if within board boundaries
                     end_piece = board[end_row][end_col]
                     if end_piece is None:  # Empty square
                         moves.append((end_row, end_col))
-                    elif end_piece.color != self.color:  # Capture opponent's piece
+                    elif end_piece.color != piece.color:  # Capture opponent's piece
                         moves.append((end_row, end_col))
                         break
                     else:  # Blocked by own piece
@@ -133,23 +136,21 @@ class Bishop(Piece):
         return moves
 
 class Queen(Piece):
+    piece_type = 'queen'
+
     def __init__(self, row, col, color, square_size):
-        super().__init__(row, col, color, square_size, 'queen')
-        # Additional Queen-specific initialization (if any)
+        super().__init__(row, col, color, square_size, self.piece_type)
 
     def calculate_potential_moves(self, board):
-        # Combine moves of Rook and Bishop
-        temp_rook = Rook(self.row, self.col, self.color, self.square_size)
-        temp_bishop = Bishop(self.row, self.col, self.color, self.square_size)
-
-        rook_moves = temp_rook.calculate_potential_moves(board)
-        bishop_moves = temp_bishop.calculate_potential_moves(board)
-
-        return rook_moves + bishop_moves  # Combine the moves
+        rook_moves = Rook.calculate_potential_moves(self, board)
+        bishop_moves = Bishop.calculate_potential_moves(self, board)
+        return rook_moves + bishop_moves
 
 class Knight(Piece):
+    piece_type = "knight"
+    
     def __init__(self, row, col, color, square_size):
-        super().__init__(row, col, color, square_size, 'knight')
+        super().__init__(row, col, color, square_size, self.piece_type)
 
 
     def calculate_potential_moves(self, board):
@@ -170,8 +171,9 @@ class Knight(Piece):
         return moves
     
 class King(Piece):
+    piece_type = "king"
     def __init__(self, row, col, color, square_size):
-        super().__init__(row, col, color, square_size, 'king')
+        super().__init__(row, col, color, square_size, self.piece_type)
         
     def calculate_potential_moves(self, board):
         moves = []
