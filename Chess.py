@@ -173,7 +173,7 @@ class King(Piece):
     def __init__(self, row, col, color, square_size):
         super().__init__(row, col, color, square_size, 'king')
         
-    def calculate_potential_moves(self, board):
+    def calculate_potential_moves(self, board, game=None):
         moves = []
         row, col = self.row, self.col
         move_offsets = [
@@ -186,10 +186,17 @@ class King(Piece):
             if 0 <= end_row < 8 and 0 <= end_col < 8:  # Check if within board boundaries
                 end_piece = board[end_row][end_col]
                 if end_piece is None or end_piece.color != self.color:  # Either move to empty square or capture
-                    moves.append((end_row, end_col))
+                    if game:
+                        # Simulate the move only if game object is passed
+                        simulated_board = game.simulate_move(row, col, end_row, end_col)
+                        # Check if the move puts the king in check
+                        if not game.is_king_in_check(simulated_board, self.color):
+                            moves.append((end_row, end_col))
+                    else:
+                        # If no game object, just add the move
+                        moves.append((end_row, end_col))
 
         return moves
-
 class ChessGame:
     def __init__(self):
         pygame.init()
@@ -208,6 +215,18 @@ class ChessGame:
         pygame.font.init()  
         self.font = pygame.font.SysFont('Arial', 24)
         
+    def highlight_selected_piece(self):
+        if self.selected_piece:
+            # Define the highlight color and thickness
+            highlight_color = (255, 255, 0)  # Yellow color
+            highlight_thickness = 4  # Thickness of the highlight border
+
+            # Calculate the position and size of the highlight rectangle
+            x = self.selected_piece.col * self.SQUARE_SIZE
+            y = self.selected_piece.row * self.SQUARE_SIZE
+            pygame.draw.rect(self.window, highlight_color, (x, y, self.SQUARE_SIZE, self.SQUARE_SIZE), highlight_thickness)
+        
+
     def describe_board(self, board):
         piece_descriptions = {
             'Rook': 'rook',
@@ -231,6 +250,13 @@ class ChessGame:
             described_board.append(', '.join(described_row))
 
         return '\n'.join(described_board)
+    
+    def calculate_potential_moves(self, piece):
+        if isinstance(piece, King):
+            return piece.calculate_potential_moves(self.pieces, self)
+        else:
+            return piece.calculate_potential_moves(self.pieces)
+
 
     def calculate_potential_moves(self, piece):
         if isinstance(piece, King) and piece.first_move and not self.is_king_in_check(self.pieces, piece.color):
@@ -459,6 +485,7 @@ class ChessGame:
             self.draw_pieces()
             self.draw_turn_indicator()
             self.draw_fps_counter(clock)
+            self.highlight_selected_piece()
             pygame.display.update()
 
         pygame.quit()
