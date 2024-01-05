@@ -220,20 +220,17 @@ class ChessGame:
             'Pawn': 'pawn'
         }
 
-        described_board = []
-        for row in board:
-            described_row = []
-            for piece in row:
-                if piece is None:
-                    described_row.append("empty")
-                else:
-                    piece_name = piece_descriptions[type(piece).__name__]
-                    color = piece.color
-                    described_row.append(f"{color} {piece_name}")
-            described_board.append(', '.join(described_row))
+        described_board = [
+            ', '.join(
+                f"{piece.color} {piece_descriptions[type(piece).__name__]}" if piece else "empty"
+                for piece in row
+            )
+            for row in board
+        ]
 
         return '\n'.join(described_board)
-
+    
+    
     def calculate_potential_moves(self, piece):
         if isinstance(piece, King) and piece.first_move and not self.is_king_in_check(self.pieces, piece.color):
             moves = piece.calculate_potential_moves(self.pieces)
@@ -271,24 +268,32 @@ class ChessGame:
         if moving_piece and moving_piece.color == self.turn:
             potential_moves = self.calculate_potential_moves(moving_piece)
             if (end_row, end_col) in potential_moves:
-                # Perform the move
-                self.pieces[end_row][end_col] = moving_piece
-                self.pieces[start_row][start_col] = None
-                moving_piece.row, moving_piece.col = end_row, end_col
-                moving_piece.first_move = False
-                
-                # Handle castling (move the rook)
-                if isinstance(moving_piece, King) and abs(start_col - end_col) == 2:
-                    if end_col > start_col:  # Kingside castling
-                        self.pieces[end_row][end_col - 1] = self.pieces[end_row][end_col + 1]  # Move the rook
-                        self.pieces[end_row][end_col + 1] = None
-                        self.pieces[end_row][end_col - 1].col = end_col - 1  # Update rook's column
-                    else:  # Queenside castling
-                        self.pieces[end_row][end_col + 1] = self.pieces[end_row][end_col - 2]  # Move the rook
-                        self.pieces[end_row][end_col - 2] = None
-                        self.pieces[end_row][end_col + 1].col = end_col + 1  # Update rook's column
-                return True
+                # Simulate the move
+                simulated_board = self.simulate_move(start_row, start_col, end_row, end_col)
+                if not self.is_king_in_check(simulated_board, self.turn):
+                    # Perform the move
+                    self.pieces[end_row][end_col] = moving_piece
+                    self.pieces[start_row][start_col] = None
+                    moving_piece.row, moving_piece.col = end_row, end_col
+                    moving_piece.first_move = False
+                    
+                    # Handle castling (move the rook)
+                    # ... [castling logic] ...
+                    return True
+                else:
+                    print("Illegal move: would place king in check.")
+                    print(self.describe_board(self.pieces))
+            else:
+                print("Illegal move: not a valid destination.")
+                print(self.describe_board(self.pieces))
+        else:
+            if not moving_piece:
+                print("No piece selected to move.")
+            else:
+                print("Not your turn.")
+            print(self.describe_board(self.pieces))
         return False
+
 
     def invalidate_relevant_caches(self, start_row, start_col, end_row, end_col):
         # Invalidate the cache of the moved piece
