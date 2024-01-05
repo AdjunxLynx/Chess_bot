@@ -288,7 +288,6 @@ class ChessGame:
                 return True
         return False
 
-
     def invalidate_relevant_caches(self, start_row, start_col, end_row, end_col):
         # Invalidate the cache of the moved piece
         self.pieces[end_row][end_col].invalidate_cache()
@@ -389,6 +388,22 @@ class ChessGame:
 
         return pieces
 
+    def highlight_selected_piece(self):
+        if self.selected_piece:
+            # Original highlight for the selected piece
+            highlight_color = (255, 255, 0)  # Yellow color
+            highlight_thickness = 4  # Thickness of the highlight border
+            x = self.selected_piece.col * self.SQUARE_SIZE
+            y = self.selected_piece.row * self.SQUARE_SIZE
+            pygame.draw.rect(self.window, highlight_color, (x, y, self.SQUARE_SIZE, self.SQUARE_SIZE), highlight_thickness)
+
+            # New code to highlight possible moves
+            move_highlight_color = (0, 255, 0)  # Green color
+            for move in self.possible_moves:
+                move_x = move[1] * self.SQUARE_SIZE
+                move_y = move[0] * self.SQUARE_SIZE
+                pygame.draw.circle(self.window, move_highlight_color, (move_x + self.SQUARE_SIZE // 2, move_y + self.SQUARE_SIZE // 2), self.SQUARE_SIZE // 10)
+
     def draw_turn_indicator(self):
         turn_text = f"{self.turn.capitalize()}'s Turn"
         text_surface = self.font.render(turn_text, True, (0, 0, 0))  # Black text
@@ -459,6 +474,7 @@ class ChessGame:
             self.draw_pieces()
             self.draw_turn_indicator()
             self.draw_fps_counter(clock)
+            self.highlight_selected_piece()
             pygame.display.update()
 
         pygame.quit()
