@@ -273,7 +273,8 @@ class ChessGame:
                 self.pieces[end_row][end_col] = moving_piece
                 self.pieces[start_row][start_col] = None
                 moving_piece.row, moving_piece.col = end_row, end_col
-
+                moving_piece.first_move = False
+                
                 # Handle castling (move the rook)
                 if isinstance(moving_piece, King) and abs(start_col - end_col) == 2:
                     if end_col > start_col:  # Kingside castling
