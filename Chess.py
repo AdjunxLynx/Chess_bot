@@ -452,6 +452,10 @@ class ChessGame:
         row, col = mouse_pos[1] // self.SQUARE_SIZE, mouse_pos[0] // self.SQUARE_SIZE
         return row, col
     
+    def does_move_result_in_check(self, start_row, start_col, end_row, end_col):
+        simulated_board = self.simulate_move(start_row, start_col, end_row, end_col)
+        return self.is_king_in_check(simulated_board, self.pieces[start_row][start_col].color)
+
     def select_piece(self, row, col):
         piece = self.pieces[row][col]
         if self.selected_piece:
@@ -463,7 +467,8 @@ class ChessGame:
             self.possible_moves = []
         elif piece and piece.color == self.turn:
             self.selected_piece = piece
-            self.possible_moves = piece.get_potential_moves(self.pieces)
+            unfiltered_moves = piece.get_potential_moves(self.pieces)
+            self.possible_moves = [move for move in unfiltered_moves if not self.does_move_result_in_check(self.selected_piece.row, self.selected_piece.col, move[0], move[1])]
 
     def switch_turn(self):
         self.turn = 'black' if self.turn == 'white' else 'white'
