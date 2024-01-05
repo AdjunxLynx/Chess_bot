@@ -230,7 +230,6 @@ class ChessGame:
 
         return '\n'.join(described_board)
     
-    
     def calculate_potential_moves(self, piece):
         if isinstance(piece, King) and piece.first_move and not self.is_king_in_check(self.pieces, piece.color):
             moves = piece.calculate_potential_moves(self.pieces)
@@ -278,22 +277,33 @@ class ChessGame:
                     moving_piece.first_move = False
                     
                     # Handle castling (move the rook)
-                    # ... [castling logic] ...
+                    if moving_piece.piece_type == "king" and abs(start_col - end_col) == 2:
+                        # Kingside castling
+                        if end_col - start_col == 2:
+                            rook = self.pieces[start_row][7]
+                            self.pieces[start_row][5] = rook
+                            self.pieces[start_row][7] = None
+                            rook.col = 5
+                        # Queenside castling
+                        else:
+                            rook = self.pieces[start_row][0]
+                            self.pieces[start_row][3] = rook
+                            self.pieces[start_row][0] = None
+                            rook.col = 3
+                        rook.first_move = False  # The rook has moved
+
                     return True
                 else:
                     print("Illegal move: would place king in check.")
-                    print(self.describe_board(self.pieces))
+                    print(self.describe_board(simulated_board))
             else:
-                print("Illegal move: not a valid destination.")
-                print(self.describe_board(self.pieces))
+                print("Illegal move: not a valid move.")
         else:
             if not moving_piece:
                 print("No piece selected to move.")
             else:
                 print("Not your turn.")
-            print(self.describe_board(self.pieces))
         return False
-
 
     def invalidate_relevant_caches(self, start_row, start_col, end_row, end_col):
         # Invalidate the cache of the moved piece
@@ -449,15 +459,11 @@ class ChessGame:
             if self.move_piece(self.selected_piece.row, self.selected_piece.col, row, col):
                 self.switch_turn()
                 self.invalidate_relevant_caches(self.selected_piece.row, self.selected_piece.col, row, col)
-                
-                
             self.selected_piece = None
             self.possible_moves = []
-        elif piece:
-            print(f"Piece selected: {piece.__class__.__name__} at ({row}, {col})")  # Print statement
-            if piece.color == self.turn:
-                self.selected_piece = piece
-                self.possible_moves = piece.get_potential_moves(self.pieces)
+        elif piece and piece.color == self.turn:
+            self.selected_piece = piece
+            self.possible_moves = piece.get_potential_moves(self.pieces)
 
     def switch_turn(self):
         self.turn = 'black' if self.turn == 'white' else 'white'
