@@ -4,21 +4,37 @@ import numpy as np
 import pygame.font
 
 class Piece:
+    _images = {}
     def __init__(self, row, col, color, square_size, piece_type):
         self.row = row
         self.col = col
         self.color = color
         self.square_size = square_size
         self.piece_type = piece_type
-        self.image = self.load_image()
+        self.image = self.load_image(piece_type, color, square_size)
+        self.first_move = True
+        self.move_cache = None
+        
+    def get_potential_moves(self, board):
+        if self.move_cache is not None:
+            return self.move_cache
+        else:
+            self.move_cache = self.calculate_potential_moves(board)
+            return self.move_cache
+        
+    def invalidate_cache(self):
+        self.move_cache = None
 
-
-    def load_image(self):
-        filename = f'{self.piece_type}_{self.color}.png'
-        path = os.path.join('Images', filename)
-        image = pygame.image.load(path)
-        image = pygame.transform.scale(image, (self.square_size, self.square_size))
-        return image
+    @classmethod
+    def load_image(cls, piece_type, color, square_size):
+            key = (piece_type, color)
+            if key not in cls._images:
+                filename = f'{piece_type}_{color}.png'
+                path = os.path.join('Images', filename)
+                image = pygame.image.load(path)
+                image = pygame.transform.scale(image, (square_size, square_size))
+                cls._images[key] = image
+            return cls._images[key]
 
 
     def draw(self, win):
@@ -26,17 +42,15 @@ class Piece:
         y = self.row * self.square_size
         win.blit(self.image, (x, y))
 
-    
-
 
 class Pawn(Piece):
+    piece_type = 'pawn'
+
     def __init__(self, row, col, color, square_size):
-        super().__init__(row, col, color, square_size, 'pawn')
+        super().__init__(row, col, color, square_size, self.piece_type)
         self.first_move = True
 
-
-
-    def get_potential_moves(self, board):
+    def calculate_potential_moves(self, board):
         moves = []
         direction = -1 if self.color == 'white' else 1  # White moves up (-1), Black moves down (+1)
         start_row, start_col = self.row, self.col
@@ -64,24 +78,26 @@ class Pawn(Piece):
         return 0 <= row < 8 and 0 <= col < 8 and board[row][col] is not None and board[row][col].color != self.color
 
 class Rook(Piece):
+    piece_type = "rook"
+    
     def __init__(self, row, col, color, square_size):
-        super().__init__(row, col, color, square_size, 'rook')
+        super().__init__(row, col, color, square_size, self.piece_type)
         # Additional Rook-specific initialization (if any)
 
-    def get_potential_moves(self, board):
+    def calculate_potential_moves(piece, board):
         moves = []
         directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]  # Down, Up, Right, Left
 
         for dir in directions:
             for i in range(1, 8):
-                end_row = self.row + dir[0] * i
-                end_col = self.col + dir[1] * i
+                end_row = piece.row + dir[0] * i
+                end_col = piece.col + dir[1] * i
 
                 if 0 <= end_row < 8 and 0 <= end_col < 8:  # Check if within board boundaries
                     end_piece = board[end_row][end_col]
                     if end_piece is None:  # Empty square
                         moves.append((end_row, end_col))
-                    elif end_piece.color != self.color:  # Capture opponent's piece
+                    elif end_piece.color != piece.color:  # Capture opponent's piece
                         moves.append((end_row, end_col))
                         break
                     else:  # Blocked by own piece
@@ -92,23 +108,24 @@ class Rook(Piece):
         return moves
 
 class Bishop(Piece):
+    piece_type = "bishop"
     def __init__(self, row, col, color, square_size):
-        super().__init__(row, col, color, square_size, 'bishop')
+        super().__init__(row, col, color, square_size, self.piece_type)
         # Additional Bishop-specific initialization (if any)
-    def get_potential_moves(self, board):
+    def calculate_potential_moves(piece, board):
         moves = []
         directions = [(1, 1), (1, -1), (-1, 1), (-1, -1)]  # Diagonal directions
 
         for dir in directions:
             for i in range(1, 8):
-                end_row = self.row + dir[0] * i
-                end_col = self.col + dir[1] * i
+                end_row = piece.row + dir[0] * i
+                end_col = piece.col + dir[1] * i
 
                 if 0 <= end_row < 8 and 0 <= end_col < 8:  # Check if within board boundaries
                     end_piece = board[end_row][end_col]
                     if end_piece is None:  # Empty square
                         moves.append((end_row, end_col))
-                    elif end_piece.color != self.color:  # Capture opponent's piece
+                    elif end_piece.color != piece.color:  # Capture opponent's piece
                         moves.append((end_row, end_col))
                         break
                     else:  # Blocked by own piece
@@ -119,26 +136,24 @@ class Bishop(Piece):
         return moves
 
 class Queen(Piece):
+    piece_type = 'queen'
+
     def __init__(self, row, col, color, square_size):
-        super().__init__(row, col, color, square_size, 'queen')
-        # Additional Queen-specific initialization (if any)
+        super().__init__(row, col, color, square_size, self.piece_type)
 
-    def get_potential_moves(self, board):
-        # Combine moves of Rook and Bishop
-        temp_rook = Rook(self.row, self.col, self.color, self.square_size)
-        temp_bishop = Bishop(self.row, self.col, self.color, self.square_size)
-
-        rook_moves = temp_rook.get_potential_moves(board)
-        bishop_moves = temp_bishop.get_potential_moves(board)
-
-        return rook_moves + bishop_moves  # Combine the moves
+    def calculate_potential_moves(self, board):
+        rook_moves = Rook.calculate_potential_moves(self, board)
+        bishop_moves = Bishop.calculate_potential_moves(self, board)
+        return rook_moves + bishop_moves
 
 class Knight(Piece):
+    piece_type = "knight"
+    
     def __init__(self, row, col, color, square_size):
-        super().__init__(row, col, color, square_size, 'knight')
+        super().__init__(row, col, color, square_size, self.piece_type)
 
 
-    def get_potential_moves(self, board):
+    def calculate_potential_moves(self, board):
         moves = []
         row, col = self.row, self.col
         move_offsets = [
@@ -156,10 +171,11 @@ class Knight(Piece):
         return moves
     
 class King(Piece):
+    piece_type = "king"
     def __init__(self, row, col, color, square_size):
-        super().__init__(row, col, color, square_size, 'king')
+        super().__init__(row, col, color, square_size, self.piece_type)
         
-    def get_potential_moves(self, board):
+    def calculate_potential_moves(self, board):
         moves = []
         row, col = self.row, self.col
         move_offsets = [
@@ -181,6 +197,7 @@ class ChessGame:
         pygame.init()
         self.WIDTH, self.HEIGHT = 800, 800
         self.ROWS, self.COLS = 8, 8
+        self.fps = 30
         self.SQUARE_SIZE = self.WIDTH // self.COLS
         self.WHITE = (255, 255, 255)
         self.BLACK = (0, 0, 0)
@@ -192,19 +209,176 @@ class ChessGame:
         self.turn = 'white'
         pygame.font.init()  
         self.font = pygame.font.SysFont('Arial', 24)
+        
+    def describe_board(self, board):
+        piece_descriptions = {
+            'Rook': 'rook',
+            'Knight': 'knight',
+            'Bishop': 'bishop',
+            'Queen': 'queen',
+            'King': 'king',
+            'Pawn': 'pawn'
+        }
+
+        described_board = [
+            ', '.join(
+                f"{piece.color} {piece_descriptions[type(piece).__name__]}" if piece else "empty"
+                for piece in row
+            )
+            for row in board
+        ]
+
+        return '\n'.join(described_board)
     
-    def move_piece(self, start_row, start_col, end_row, end_col):
-        moving_piece = self.pieces[start_row][start_col]
-        if (end_row, end_col) in moving_piece.get_potential_moves(self.pieces):
-            # Perform the move
-            self.pieces[end_row][end_col] = moving_piece
-            self.pieces[start_row][start_col] = None
-            moving_piece.row, moving_piece.col = end_row, end_col
-            print(f"Moved {moving_piece.__class__.__name__} to ({end_row}, {end_col})")
-            return True
-        print("Invalid move attempted")
+    def calculate_potential_moves(self, piece):
+        if isinstance(piece, King) and piece.first_move and not self.is_king_in_check(self.pieces, piece.color):
+            moves = piece.calculate_potential_moves(self.pieces)
+            # Add castling moves here
+            if self.can_castle_kingside(piece.row, piece.col):
+                moves.append((piece.row, piece.col + 2))
+            if self.can_castle_queenside(piece.row, piece.col):
+                moves.append((piece.row, piece.col - 2))
+            return moves
+        else:
+            return piece.calculate_potential_moves(self.pieces)
+       
+    def can_castle_queenside(self, king_row, king_col):
+        # Check if squares between the king and the queenside rook are empty
+        if all(self.pieces[king_row][col] is None for col in range(king_col - 1, king_col - 4, -1)):
+            rook = self.pieces[king_row][king_col - 4]
+            if isinstance(rook, Rook) and rook.first_move:
+                # Ensure the king does not pass through a square under attack
+                if not self.is_king_in_check(self.pieces, 'white' if king_row == 7 else 'black') and not self.is_square_under_attack(king_row, king_col - 1, self.pieces) and not self.is_square_under_attack(king_row, king_col - 2, self.pieces):
+                    return True
+        return False
+    
+    def can_castle_kingside(self, king_row, king_col):
+        # Logic for kingside castling, use king_row and king_col
+        if self.pieces[king_row][king_col + 1] is None and self.pieces[king_row][king_col + 2] is None:
+            rook = self.pieces[king_row][king_col + 3]
+            if isinstance(rook, Rook) and rook.first_move:
+                # Ensure the king does not pass through a square under attack
+                if not self.is_king_in_check(self.pieces, 'white' if king_row == 7 else 'black') and not self.is_square_under_attack(king_row, king_col + 1, self.pieces) and not self.is_square_under_attack(king_row, king_col + 2, self.pieces):
+                    return True
         return False
 
+    def move_piece(self, start_row, start_col, end_row, end_col):
+        moving_piece = self.pieces[start_row][start_col]
+        if moving_piece and moving_piece.color == self.turn:
+            potential_moves = self.calculate_potential_moves(moving_piece)
+            if (end_row, end_col) in potential_moves:
+                # Simulate the move
+                simulated_board = self.simulate_move(start_row, start_col, end_row, end_col)
+                if not self.is_king_in_check(simulated_board, self.turn):
+                    # Perform the move
+                    self.pieces[end_row][end_col] = moving_piece
+                    self.pieces[start_row][start_col] = None
+                    moving_piece.row, moving_piece.col = end_row, end_col
+                    moving_piece.first_move = False
+                    
+                    # Handle castling (move the rook)
+                    if moving_piece.piece_type == "king" and abs(start_col - end_col) == 2:
+                        # Kingside castling
+                        if end_col > start_col:
+                            rook = self.pieces[start_row][7]
+                            self.pieces[start_row][5] = rook
+                            self.pieces[start_row][7] = None
+                            rook.col = 5
+                        # Queenside castling
+                        else:
+                            rook = self.pieces[start_row][0]
+                            self.pieces[start_row][3] = rook
+                            self.pieces[start_row][0] = None
+                            rook.col = 3
+                        rook.first_move = False  # The rook has moved
+
+                    return True
+                else:
+                    print("Illegal move: would place king in check.")
+            else:
+                print("Illegal move: not a valid destination.")
+        else:
+            if not moving_piece:
+                print("No piece selected to move.")
+            else:
+                print("Not your turn.")
+        return False
+
+    def invalidate_relevant_caches(self, start_row, start_col, end_row, end_col):
+        # Invalidate the cache of the moved piece
+        self.pieces[end_row][end_col].invalidate_cache()
+        # Invalidate caches of other pieces that might be affected
+        for row in range(self.ROWS):
+            for col in range(self.COLS):
+                if self.pieces[row][col] is not None:
+                    # Add logic to determine if this piece's moves could be affected
+                    self.pieces[row][col].invalidate_cache()
+
+    def simulate_move(self, start_row, start_col, end_row, end_col):
+        # Create a new board with the same piece references
+        temp_board = [[self.pieces[r][c] for c in range(self.COLS)] for r in range(self.ROWS)]
+
+        # Move the piece on the temp_board
+        temp_board[end_row][end_col] = temp_board[start_row][start_col]
+        temp_board[start_row][start_col] = None
+
+        # If the piece is a pawn and this is its first move, mark it as such
+        if temp_board[end_row][end_col] and isinstance(temp_board[end_row][end_col], Pawn):
+            temp_board[end_row][end_col].first_move = False
+
+        return temp_board
+    
+    def is_king_in_check(self, board, color):
+        king_position = None
+        for row in range(self.ROWS):
+            for col in range(self.COLS):
+                piece = board[row][col]
+                if piece and piece.piece_type == 'king' and piece.color == color:
+                    king_position = (row, col)
+                    break
+            if king_position:
+                break
+
+        if king_position:
+            opponent_color = 'white' if color == 'black' else 'black'
+            for row in range(self.ROWS):
+                for col in range(self.COLS):
+                    piece = board[row][col]
+                    if piece and piece.color == opponent_color:
+                        potential_moves = piece.calculate_potential_moves(board)
+                        if king_position in potential_moves:
+                            # Ensure the path to the king is not blocked for linear-moving pieces (rook, bishop, queen)
+                            if not self.is_path_blocked(piece, king_position, board):
+                                return True
+        return False
+    
+    def is_path_blocked(self, piece, target_position, board):
+        if isinstance(piece, Knight):  # Knights can jump, so no path check needed
+            return False
+
+        row_diff = target_position[0] - piece.row
+        col_diff = target_position[1] - piece.col
+        row_step = 1 if row_diff > 0 else -1 if row_diff < 0 else 0
+        col_step = 1 if col_diff > 0 else -1 if col_diff < 0 else 0
+
+        current_row, current_col = piece.row, piece.col
+        while (current_row, current_col) != target_position:
+            current_row += row_step
+            current_col += col_step
+            if (current_row, current_col) != target_position and board[current_row][current_col] is not None:
+                return True  # Path is blocked
+
+        return False  # Path is not blocked
+
+    def is_square_under_attack(self, row, col, board):
+        opponent_color = 'black' if self.turn == 'white' else 'white'
+        for r in range(self.ROWS):
+            for c in range(self.COLS):
+                piece = board[r][c]
+                if piece and piece.color == opponent_color:
+                    if (row, col) in piece.calculate_potential_moves(board):
+                        return True
+        return False
 
     def create_pieces(self):
         # Create an 8x8 matrix of None
@@ -230,10 +404,31 @@ class ChessGame:
 
         return pieces
 
+    def highlight_selected_piece(self):
+        if self.selected_piece:
+            # Original highlight for the selected piece
+            highlight_color = (255, 255, 0)  # Yellow color
+            highlight_thickness = 4  # Thickness of the highlight border
+            x = self.selected_piece.col * self.SQUARE_SIZE
+            y = self.selected_piece.row * self.SQUARE_SIZE
+            pygame.draw.rect(self.window, highlight_color, (x, y, self.SQUARE_SIZE, self.SQUARE_SIZE), highlight_thickness)
+
+            # New code to highlight possible moves
+            move_highlight_color = (0, 255, 0)  # Green color
+            for move in self.possible_moves:
+                move_x = move[1] * self.SQUARE_SIZE
+                move_y = move[0] * self.SQUARE_SIZE
+                pygame.draw.circle(self.window, move_highlight_color, (move_x + self.SQUARE_SIZE // 2, move_y + self.SQUARE_SIZE // 2), self.SQUARE_SIZE // 10)
+
     def draw_turn_indicator(self):
         turn_text = f"{self.turn.capitalize()}'s Turn"
         text_surface = self.font.render(turn_text, True, (0, 0, 0))  # Black text
         self.window.blit(text_surface, (10, self.HEIGHT - 30))
+
+    def draw_fps_counter(self, clock):
+        fps = int(clock.get_fps())  # Get the current FPS
+        fps_text = self.font.render(f'FPS: {fps}', True, (255, 0, 0))  # Red text
+        self.window.blit(fps_text, (self.WIDTH - 100, 10))  # Position the FPS counter at the top-right corner
 
     def draw_board(self):
         light_green = (118, 150, 86)
@@ -262,8 +457,18 @@ class ChessGame:
             # Move the piece and switch turns if the move is valid
             if self.move_piece(self.selected_piece.row, self.selected_piece.col, row, col):
                 self.switch_turn()
+                self.invalidate_relevant_caches(self.selected_piece.row, self.selected_piece.col, row, col)
+                
+                
+                
+                
             self.selected_piece = None
             self.possible_moves = []
+        elif piece:
+            print(f"Piece selected: {piece.__class__.__name__} at ({row}, {col})")  # Print statement
+            if piece.color == self.turn:
+                self.selected_piece = piece
+                self.possible_moves = piece.get_potential_moves(self.pieces)
         elif piece:
             print(f"Piece selected: {piece.__class__.__name__} at ({row}, {col})")  # Print statement
             if piece.color == self.turn:
@@ -278,8 +483,7 @@ class ChessGame:
         clock = pygame.time.Clock()
 
         while run:
-            clock.tick(30)
-
+            clock.tick(self.fps)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     run = False
@@ -292,6 +496,8 @@ class ChessGame:
             self.draw_board()
             self.draw_pieces()
             self.draw_turn_indicator()
+            self.draw_fps_counter(clock)
+            self.highlight_selected_piece()
             pygame.display.update()
 
         pygame.quit()
