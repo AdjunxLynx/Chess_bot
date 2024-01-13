@@ -239,24 +239,7 @@ class King(Piece):
         return False
     
     
-class ChessGame:
-    def __init__(self):
-        pygame.init()
-        self.WIDTH, self.HEIGHT = 800, 800
-        self.ROWS, self.COLS = 8, 8
-        self.fps = 30
-        self.SQUARE_SIZE = self.WIDTH // self.COLS
-        self.WHITE = (255, 255, 255)
-        self.BLACK = (0, 0, 0)
-        self.window = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
-        pygame.display.set_caption('Chess Game')
-        self.pieces = self.create_pieces()
-        self.selected_piece = None
-        self.possible_moves = []
-        self.turn = 'white'
-        pygame.font.init()  
-        self.font = pygame.font.SysFont('Arial', 24)
-        self.last_move = None
+
         
     def describe_board(self, board):
         piece_descriptions = {
